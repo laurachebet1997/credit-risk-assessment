@@ -43,7 +43,7 @@ with tab1:
         st.write("**Personal Information**")
         gender = st.selectbox("Gender", ["M", "F"])
         age = st.slider("Age", 18, 80, 35)
-        marital_status = st.selectbox("Marital Status", ["Single", "Married", "Divorced", "Widowed", "Unknown"])
+        marital_status = st.selectbox("Marital Status", ["Civil marriage", "Married", "Separated", "Single / not married", "Widow"])
         family_size = st.slider("Family Size", 1, 10, 2)
         children_count = st.number_input("Number of Children", 0, 10, 0)
     
@@ -63,9 +63,11 @@ with tab1:
                                        ["Working", "Commercial associate", "Pensioner", "State servant", "Student"])
         employment_years = st.slider("Employment Years", 0, 40, 5)
         occupation = st.selectbox("Occupation", 
-                                  ["Laborers", "Sales staff", "Core staff", "Managers", "Drivers", 
-                                   "High skill tech staff", "Accountants", "Security staff", 
-                                   "Cleaning staff", "Cooking staff", "Private service staff", "Unknown"])
+                                  ["Accountants", "Cleaning staff", "Cooking staff", "Core staff", "Drivers", 
+                                   "HR staff", "High skill tech staff", "IT staff", "Laborers", 
+                                   "Low-skill Laborers", "Managers", "Medicine staff", "Private service staff", 
+                                   "Realty agents", "Sales staff", "Secretaries", "Security staff", "Unknown", 
+                                   "Waiters/barmen staff"])
         education_level = st.selectbox("Education Level",
                                        ["Secondary / secondary special", "Higher education", 
                                         "Incomplete higher", "Lower secondary", "Academic degree"])
@@ -102,6 +104,13 @@ with tab1:
                 'ACCOUNT_AGE_MONTHS': [account_age_months]
             })
             
+            # Feature Engineering: Create the same engineered features as in training
+            input_data['IS_UNEMPLOYED'] = (input_data['EMPLOYEMENT_YEARS'] < 0).astype(int)
+            input_data['HAS_LIMITED_WORK_HISTORY'] = (input_data['EMPLOYEMENT_YEARS'] < 1).astype(int)
+            input_data['OWNS_ASSETS'] = ((input_data['OWNS_CAR'] == 'Y') | (input_data['OWNS_PROPERTY'] == 'Y')).astype(int)
+            input_data['HIGH_RISK_CREDIT_HISTORY'] = (input_data['AVERAGE_MONTHLY_RISK'] > 0.3).astype(int)
+            input_data['LONG_ACCOUNT_HISTORY'] = (input_data['ACCOUNT_AGE_MONTHS'] > 24).astype(int)
+            
             # Encode categorical variables
             input_encoded = input_data.copy()
             for col in label_encoders.keys():
@@ -111,13 +120,9 @@ with tab1:
             # Select only features used in training
             X_input = input_encoded[features].fillna(0)
             
-            # Identify numeric features for scaling
-            numeric_features = [col for col in features if col in input_data.select_dtypes(include=[np.number]).columns.tolist()]
-            
-            # Scale numeric features
+            # Scale ALL features (since the scaler was trained on encoded data)
             X_input_scaled = X_input.copy()
-            if numeric_features:
-                X_input_scaled[numeric_features] = scaler.transform(X_input[numeric_features])
+            X_input_scaled[features] = scaler.transform(X_input[features])
             
             # Make prediction
             prediction = model.predict(X_input_scaled)[0]
